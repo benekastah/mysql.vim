@@ -1,4 +1,3 @@
-
 function! s:get_visual_selection()
   let [sline, scol, soff]=getpos("'<")[1:]
   let [eline, ecol, eoff]=getpos("'>")[1:]
@@ -79,4 +78,4 @@ function! MySql#auth(username, password)
   let s:password = a:password
 endfunction
 
-map <leader>q <esc>:call MySql#query_to_buffer()<CR>
+vmap <leader>q <esc>:call MySql#query_to_buffer()<CR>
