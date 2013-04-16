@@ -48,6 +48,7 @@ function! MySql#run_query(user, pwd, query)
   return result
 endfunction
 
+let s:mysql_buffer_number = -1
 function! MySql#query_to_buffer()
   let query = s:get_visual_selection()
   if (len(query) <= 0)
@@ -56,22 +57,18 @@ function! MySql#query_to_buffer()
   let result = MySql#run_query(s:username, s:password, query)
 
   let query_display = s:trim(substitute(query, '\\n', '\n', 'g'))
-  let query_title = substitute(query_display, '\s+', ' ', 'g')
-  " echo query_title
-  " let result_list = split(query_display, '\n') + [''] + split(result, '\n')
-  let result_list = split(result, '\n')
+  let result_list = split(query_display, '\n') + [''] + split(result, '\n')
 
   " Delete the current mysql query result buffer, if any.
-  if (exists('s:mysql_buffer_number') && bufexists(s:mysql_buffer_number))
-    silent buffer s:mysql_buffer_number
-  else
-    " let s:mysql_buffer_number = '[ MySql query: '.query_title.' ]'
-    " Output result_list to a split buffer
-    split [\ MySql\ query\ ]
-    let s:mysql_buffer_number = bufnr('%')
-    normal! ggdG
-    setlocal buftype=nofile
+  if (s:mysql_buffer_number >= 0 && bufexists(s:mysql_buffer_number))
+    execute 'bwipeout' s:mysql_buffer_number
   endif
+
+  " Output result_list to a split buffer
+  split [\ MySql\ query\ ]
+  let s:mysql_buffer_number = bufnr('%')
+  normal! ggdG
+  setlocal buftype=nofile
   call append(0, result_list)
 endfunction
 
@@ -79,7 +76,5 @@ function! MySql#auth(username, password)
   let s:username = a:username
   let s:password = a:password
 endfunction
-
-call MySql#auth('minted_dev', 'minted_dev')
 
 map <leader>q <esc>:call MySql#query_to_buffer()<CR>
