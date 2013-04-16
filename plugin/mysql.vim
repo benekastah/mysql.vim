@@ -78,4 +78,4 @@ function! MySql#auth(username, password)
   let s:password = a:password
 endfunction
 
-vmap <leader>q <esc>:call MySql#query_to_buffer()<CR>
+map <leader>q <esc>:call MySql#query_to_buffer()<CR>
