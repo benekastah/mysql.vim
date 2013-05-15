@@ -42,19 +42,19 @@ function! s:trim(input_string)
     return substitute(a:input_string, '^\s*\(.\{-}\)\s*$', '\1', '')
 endfunction
 
-function! MySql#run_query(user, pwd, query)
+function! mysql#RunQuery(user, pwd, query)
   let command = 'mysql -u '.a:user.' -p'.a:user.' '.a:pwd.' --table'
   let result = system(command, a:query)
   return result
 endfunction
 
 let s:mysql_buffer_number = -1
-function! MySql#query_to_buffer()
+function! mysql#QueryToBuffer()
   let query = s:get_visual_selection()
   if (len(query) <= 0)
     return
   endif
-  let result = MySql#run_query(s:username, s:password, query)
+  let result = mysql#RunQuery(s:username, s:password, query)
 
   let query_display = s:trim(substitute(query, '\\n', '\n', 'g'))
   let result_list = split(query_display, '\n') + [''] + split(result, '\n')
@@ -72,9 +72,9 @@ function! MySql#query_to_buffer()
   call append(0, result_list)
 endfunction
 
-function! MySql#auth(username, password)
+function! mysql#Auth(username, password)
   let s:username = a:username
   let s:password = a:password
 endfunction
 
-map <leader>q <esc>:call MySql#query_to_buffer()<CR>
+map <leader>q <esc>:call mysql#QueryToBuffer()<CR>
