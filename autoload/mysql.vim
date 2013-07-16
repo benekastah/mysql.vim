@@ -42,9 +42,17 @@ function! s:trim(input_string)
     return substitute(a:input_string, '^\s*\(.\{-}\)\s*$', '\1', '')
 endfunction
 
-function! mysql#RunQuery(user, pwd, query)
-  let command = 'mysql -u '.a:user.' -p'.a:user.' '.a:pwd.' --table'
-  let result = system(command, a:query)
+function! mysql#GetCommand(host, user, pwd, db)
+  if s:command_getter
+    return s:command_getter(a:host, a:user, a:pwd, a:db)
+  endif
+  let cmd = 'mysql -h '.a:host.' -u '.a:user.' -p'.a:pwd.' '.a:db.' --table'
+  return cmd
+endfunction
+
+function! mysql#RunQuery(host, user, pwd, db, query)
+  let cmd = mysql#GetCommand(a:host, a:user, a:pwd, a:db)
+  let result = system(cmd, a:query)
   return result
 endfunction
 
@@ -54,7 +62,7 @@ function! mysql#QueryToBuffer()
   if (len(query) <= 0)
     return
   endif
-  let result = mysql#RunQuery(s:username, s:password, query)
+  let result = mysql#RunQuery(s:host, s:username, s:password, s:database, query)
 
   let query_display = s:trim(substitute(query, '\\n', '\n', 'g'))
   let result_list = split(query_display, '\n') + [''] + split(result, '\n')
@@ -72,9 +80,15 @@ function! mysql#QueryToBuffer()
   call append(0, result_list)
 endfunction
 
-function! mysql#Auth(username, password)
+function! mysql#Auth(host, username, password, database)
+  let s:host = a:host
   let s:username = a:username
   let s:password = a:password
+  let s:database = a:database
+endfunction
+
+function! mysql#SetCommandGetter(fn)
+  s:command_getter = a:fn
 endfunction
 
 map <leader>q <esc>:call mysql#QueryToBuffer()<CR>
