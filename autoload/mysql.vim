@@ -42,8 +42,28 @@ function! s:trim(input_string)
     return substitute(a:input_string, '^\s*\(.\{-}\)\s*$', '\1', '')
 endfunction
 
+function! s:get_query_or_line()
+  if mode() == 'n'
+    let query = getline('.')
+  else
+    let query = s:get_visual_selection()
+  endif
+  return query
+endfunction
+
+function! s:get_query_or_word()
+  if mode() == 'n'
+    let query = expand('<cword>')
+  else
+    let query = s:get_visual_selection()
+  endif
+  return query
+endfunction
+
 function! mysql#GetCommand(host, user, pwd, db)
-  if s:command_getter
+  if exists("b:command_getter") && b:command_getter
+    return b:command_getter(a:host, a:user, a:pwd, a:db)
+  elseif s:command_getter
     return s:command_getter(a:host, a:user, a:pwd, a:db)
   endif
   let cmd = 'mysql -h '.a:host.' -u '.a:user.' -p'.a:pwd.' '.a:db.' --table'
@@ -51,20 +71,31 @@ function! mysql#GetCommand(host, user, pwd, db)
 endfunction
 
 function! mysql#RunQuery(host, user, pwd, db, query)
+  if (len(a:query) <= 0)
+    return ''
+  endif
   let cmd = mysql#GetCommand(a:host, a:user, a:pwd, a:db)
   let result = system(cmd, a:query)
   return result
 endfunction
 
-let s:mysql_buffer_number = -1
-function! mysql#QueryToBuffer()
-  let query = s:get_visual_selection()
-  if (len(query) <= 0)
-    return
+function! mysql#EnvRunQuery(query)
+  if exists("b:host") && b:host
+    return mysql#RunQuery(b:host, b:username, b:password, b:database, a:query)
+  else
+    return mysql#RunQuery(s:host, s:username, s:password, s:database, a:query)
   endif
-  let result = mysql#RunQuery(s:host, s:username, s:password, s:database, query)
+endfunction
 
-  let query_display = s:trim(substitute(query, '\\n', '\n', 'g'))
+let s:mysql_buffer_number = -1
+function! mysql#Query()
+  let query = s:get_query_or_line()
+  call mysql#DisplayResult(query)
+endfunction
+
+function! mysql#DisplayResult(query)
+  let result = mysql#EnvRunQuery(a:query)
+  let query_display = s:trim(substitute(a:query, '\\n', '\n', 'g'))
   let result_list = split(query_display, '\n') + [''] + split(result, '\n')
 
   " Delete the current mysql query result buffer, if any.
@@ -80,6 +111,11 @@ function! mysql#QueryToBuffer()
   call append(0, result_list)
 endfunction
 
+function! mysql#DescTable()
+  let tablename = s:get_query_or_word()
+  call mysql#DisplayResult('desc `'.tablename.'`;')
+endfunction
+
 function! mysql#Auth(host, username, password, database)
   let s:host = a:host
   let s:username = a:username
@@ -87,8 +123,23 @@ function! mysql#Auth(host, username, password, database)
   let s:database = a:database
 endfunction
 
-function! mysql#SetCommandGetter(fn)
-  s:command_getter = a:fn
+function! mysql#BufferAuth(host, username, password, database)
+  let b:host = a:host
+  let b:username = a:username
+  let b:password = a:password
+  let b:database = a:database
 endfunction
 
-map <leader>q <esc>:call mysql#QueryToBuffer()<CR>
+function! mysql#SetCommandGetter(fn)
+  let s:command_getter = a:fn
+endfunction
+
+function! mysql#BufferSetCommandGetter(fn)
+  let b:command_getter = a:fn
+endfunction
+
+call mysql#Auth(0, 0, 0, 0)
+call mysql#SetCommandGetter(0)
+
+map <leader>q <esc>:call mysql#Query()<CR>
+map <leader>d <esc>:call mysql#DescTable()<CR>
