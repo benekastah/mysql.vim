@@ -41,15 +41,25 @@ endfunction
 function! s:smart_get_query()
   let pstatement_end = ';\s*\(\-\-.*\)\?$'
   let lcur = line('.')
+  let colcur = col('.')
+
   let lprev = search(pstatement_end, 'b')
-  let llast = search(pstatement_end)
   if lprev > lcur
     let lprev = 0
+  endif
+  let lprev = lprev + 1
+  call cursor(lcur, colcur)
+
+  if expand('<cword>') == ';'
+    let llast = lcur
+  else
+    let llast = search(pstatement_end)
   endif
   if llast < lcur
     let llast = line('$')
   endif
-  let lprev = lprev + 1
+  call cursor(lcur, colcur)
+
   let lines = getline(lprev, llast)
   return join(lines, '\n')
 endfunction
@@ -59,7 +69,7 @@ function! s:trim(input_string)
 endfunction
 
 function! mysql#GetCommand(host, user, pwd, db)
-  let cmd = 'mysql -h '.a:host.' -u '.a:user.' -p'.a:pwd.' '.a:db.' --table'
+  let cmd = 'mysql -h '.a:host.' -u '.a:user.' -p'.a:pwd.' '.a:db.' -t'
   return cmd
 endfunction
 
@@ -103,9 +113,10 @@ function! mysql#DescTable()
 endfunction
 
 function! mysql#DisplayResult(query)
-  let result = mysql#EnvRunQuery(a:query)
-  let query_display = s:trim(substitute(a:query, '\\n', '\n', 'g'))
-  let result_list = split(query_display, '\n') + [''] + split(result, '\n')
+  let query = s:trim(substitute(a:query, '\\n', '\n', 'g'))
+  let result = mysql#EnvRunQuery(query)
+  " let query_display = substitute(a:query, '\\n', '\n', 'g')
+  let result_list = split(query, '\n') + [''] + split(result, '\n')
 
   " Delete the current mysql query result buffer, if any.
   if (s:mysql_buffer_number >= 0 && bufexists(s:mysql_buffer_number))
