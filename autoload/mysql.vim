@@ -42,30 +42,7 @@ function! s:trim(input_string)
     return substitute(a:input_string, '^\s*\(.\{-}\)\s*$', '\1', '')
 endfunction
 
-function! s:get_query_or_line()
-  if mode() == 'n'
-    let query = getline('.')
-  else
-    let query = s:get_visual_selection()
-  endif
-  return query
-endfunction
-
-function! s:get_query_or_word()
-  if mode() == 'n'
-    let query = expand('<cword>')
-  else
-    let query = s:get_visual_selection()
-  endif
-  return query
-endfunction
-
 function! mysql#GetCommand(host, user, pwd, db)
-  if exists("b:command_getter") && b:command_getter
-    return b:command_getter(a:host, a:user, a:pwd, a:db)
-  elseif s:command_getter
-    return s:command_getter(a:host, a:user, a:pwd, a:db)
-  endif
   let cmd = 'mysql -h '.a:host.' -u '.a:user.' -p'.a:pwd.' '.a:db.' --table'
   return cmd
 endfunction
@@ -75,7 +52,13 @@ function! mysql#RunQuery(host, user, pwd, db, query)
     return ''
   endif
   let cmd = mysql#GetCommand(a:host, a:user, a:pwd, a:db)
-  let result = system(cmd, a:query)
+  if exists('b:run_query_fn') && b:run_query_fn
+    let result = b:run_query_fn(cmd, a:query)
+  elseif s:run_query_fn
+    let result = s:run_query_fn(cmd, a:query)
+  else
+    let result = system(cmd, a:query)
+  endif
   return result
 endfunction
 
@@ -89,8 +72,18 @@ endfunction
 
 let s:mysql_buffer_number = -1
 function! mysql#Query()
-  let query = s:get_query_or_line()
+  let query = s:get_visual_selection()
   call mysql#DisplayResult(query)
+endfunction
+
+function! mysql#QueryLine()
+  let query = getline('.')
+  call mysql#DisplayResult(query)
+endfunction
+
+function! mysql#DescTable()
+  let tablename = expand('<cword>')
+  call mysql#DisplayResult('desc `'.tablename.'`;')
 endfunction
 
 function! mysql#DisplayResult(query)
@@ -111,11 +104,6 @@ function! mysql#DisplayResult(query)
   call append(0, result_list)
 endfunction
 
-function! mysql#DescTable()
-  let tablename = s:get_query_or_word()
-  call mysql#DisplayResult('desc `'.tablename.'`;')
-endfunction
-
 function! mysql#Auth(host, username, password, database)
   let s:host = a:host
   let s:username = a:username
@@ -130,16 +118,17 @@ function! mysql#BufferAuth(host, username, password, database)
   let b:database = a:database
 endfunction
 
-function! mysql#SetCommandGetter(fn)
-  let s:command_getter = a:fn
+function! mysql#SetRunQueryFn(fn)
+  let s:run_query_fn = a:fn
 endfunction
 
-function! mysql#BufferSetCommandGetter(fn)
-  let b:command_getter = a:fn
+function! mysql#BufferSetRunQueryFn(fn)
+  let b:run_query_fn = a:fn
 endfunction
 
 call mysql#Auth(0, 0, 0, 0)
-call mysql#SetCommandGetter(0)
+call mysql#SetRunQueryFn(0)
 
 map <leader>q <esc>:call mysql#Query()<CR>
+map <leader>ql <esc>:call mysql#QueryLine()<CR>
 map <leader>d <esc>:call mysql#DescTable()<CR>
