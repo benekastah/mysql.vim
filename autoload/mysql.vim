@@ -39,7 +39,7 @@ function! s:get_vrange(start, end)
 endfunction
 
 function! s:smart_get_query()
-  let pstatement_end = ';\s*$'
+  let pstatement_end = ';\s*\(\-\-.*\)\?$'
   let lcur = line('.')
   let lprev = search(pstatement_end, 'b')
   let llast = search(pstatement_end)
