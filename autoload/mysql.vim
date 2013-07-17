@@ -38,6 +38,22 @@ function! s:get_vrange(start, end)
     return text
 endfunction
 
+function! s:smart_get_query()
+  let pstatement_end = ';\s*$'
+  let lcur = line('.')
+  let lprev = search(pstatement_end, 'b')
+  let llast = search(pstatement_end)
+  if lprev > lcur
+    let lprev = 0
+  endif
+  if llast < lcur
+    let llast = line('$')
+  endif
+  let lprev = lprev + 1
+  let lines = getline(lprev, llast)
+  return join(lines, '\n')
+endfunction
+
 function! s:trim(input_string)
     return substitute(a:input_string, '^\s*\(.\{-}\)\s*$', '\1', '')
 endfunction
@@ -71,13 +87,13 @@ function! mysql#EnvRunQuery(query)
 endfunction
 
 let s:mysql_buffer_number = -1
-function! mysql#Query()
+function! mysql#QueryVisual()
   let query = s:get_visual_selection()
   call mysql#DisplayResult(query)
 endfunction
 
-function! mysql#QueryLine()
-  let query = getline('.')
+function! mysql#QuerySmart()
+  let query = s:smart_get_query()
   call mysql#DisplayResult(query)
 endfunction
 
@@ -129,6 +145,6 @@ endfunction
 call mysql#Auth(0, 0, 0, 0)
 call mysql#SetRunQueryFn(0)
 
-map <leader>q <esc>:call mysql#Query()<CR>
-map <leader>ql <esc>:call mysql#QueryLine()<CR>
+map <leader>q <esc>:call mysql#QuerySmart()<CR>
+map <leader>qv <esc>:call mysql#QueryVisual()<CR>
 map <leader>d <esc>:call mysql#DescTable()<CR>
