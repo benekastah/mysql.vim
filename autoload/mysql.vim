@@ -113,10 +113,10 @@ function! mysql#DescTable()
 endfunction
 
 function! mysql#DisplayResult(query)
-  let query = s:trim(substitute(a:query, '\\n', '\n', 'g'))
+  let query = s:trim(substitute(a:query, '\\n', ' ', 'g'))
   let result = mysql#EnvRunQuery(query)
-  " let query_display = substitute(a:query, '\\n', '\n', 'g')
-  let result_list = split(query, '\n') + [''] + split(result, '\n')
+  let query_display = s:trim(substitute(a:query, '\\n', '\n', 'g'))
+  let result_list = split(query_display, '\n') + [''] + split(result, '\n')
 
   " Delete the current mysql query result buffer, if any.
   if (s:mysql_buffer_number >= 0 && bufexists(s:mysql_buffer_number))
